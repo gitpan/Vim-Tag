@@ -1,4 +1,7 @@
 Revision history for Perl extension Vim-Tag
 
+0.02  Sat Nov  1 22:21:12 CET 2008 (Marcel Gruenauer <marcel@cpan.org>)
+     - forgot to inherit from Exporter...
+
 0.01  Sat Nov  1 22:05:00 CET 2008 (Marcel Gruenauer <marcel@cpan.org>)
      - original version

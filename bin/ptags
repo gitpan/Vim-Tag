@@ -11,7 +11,7 @@ use Getopt::Attribute;
 use UNIVERSAL::require;
 
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 # --use: whether to 'use' the package; might gen more tags. The value is the
