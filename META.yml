@@ -3,10 +3,12 @@ abstract: 'Generate perl tags for vim'
 author:
   - 'Marcel GrE<uuml>nauer, C<< <marcel@cpan.org> >>'
 build_requires:
-  Test::Compile: 0
+  ExtUtils::MakeMaker: 6.42
   Test::More: 0.70
+configure_requires:
+  ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 0.76'
+generated_by: 'Module::Install version 0.91'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -16,14 +18,17 @@ no_index:
   directory:
     - inc
     - t
-recommends:
-  Test::Pod: 0
-  Test::Pod::Coverage: 0
+    - xt
 requires:
   File::Find::Upwards: 0
+  File::Slurp: 0
   Getopt::Attribute: 0
+  IO::Capture::Stderr: 0
   UNIVERSAL::require: 0
-  perl: 5.6.0
+  perl: 5.8.0
 resources:
+  bugtracker: http://rt.cpan.org/Public/Dist/Display.html?Name=Vim-Tag
+  homepage: http://search.cpan.org/dist/Vim-Tag/
   license: http://dev.perl.org/licenses/
-version: 0.02
+  repository: git://github.com/hanekomu/vim-tag.git
+version: 0.03

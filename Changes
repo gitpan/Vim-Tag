@@ -1,5 +1,9 @@
 Revision history for Perl extension Vim-Tag
 
+0.03  Mon 2009.12.07 01:03:29 CET (Marcel Gruenauer <marcel@cpan.org>)
+     - reduced dependencies using author tests
+     - better dist engineering (INSTALL, README, README.mkdn etc.)
+
 0.02  Sat Nov  1 22:21:12 CET 2008 (Marcel Gruenauer <marcel@cpan.org>)
      - forgot to inherit from Exporter...
 
