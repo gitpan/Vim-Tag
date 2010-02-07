@@ -4,16 +4,9 @@ Vim::Tag - Generate perl tags for vim
 
 # SYNOPSIS
 
-    package Foo::Bar;
+    $ ptags --use ~/code/coderepos -o ~/.ptags
 
-    use Vim::Tag 'make_tag';
-    make_tag $tag, $filename, $line;
-
-then:
-
-    $ ptags --use ~/code/coderepos | ptags_sort >~/.ptags
-
-.vimrc:
+In `.vimrc`:
 
     set tags+=~/.ptags
 
@@ -38,22 +31,39 @@ then you can do:
     $ vit Foo--Bar     # easier to complete on than double-colons
     $ vit my_subroutine
 
+Custom tag generation
+
+    package Foo::Bar;
+
+    $::PTAGS && $::PTAGS->add_tag($tag, $filename, $line);
+
 # DESCRIPTION
 
 Manage tags for perl code in vim, with ideas on integrating tags with the bash
 programmable completion project. See the synopsis.
 
-# EXPORTS
+You should subclass this class to use it in your `ptags`-generating
+application. It could be as simple as that:
 
-Nothing is exported automatically. The function can be exported using its name
-or the `:all` tag.
+    #!/usr/bin/env perl
+    use warnings;
+    use strict;
+    use base qw(Vim::Tag);
+    main->new->run;
 
-- `make_tag`
+And if you want just that, there's the `ptags` program. But it is more
+interesting to extend this with custom aliases and to have your modules
+generate custom tags and so on. The documentation on those features is a bit
+sparse at the moment, but take a look in this distribution's `examples/`
+directory.
 
-Takes a tag name, a filename and a line number. If the global variable
-`$::PTAGS` is set, it prints a tag line that vim can understand. The `ptags`
-program will set `$::PTAGS` when going through the modules to give them a
-chance to generate their own tags.
+# METHODS
+
+- `add_tag`
+
+Takes a tag name, a filename and a 'search' argument that can either be a line
+number which caused the tag, or a vim search pattern which will jump to the
+tag. It will add the tag to the `tags` hash.
 
 # BUGS AND LIMITATIONS
 
@@ -78,7 +88,7 @@ Marcel Gr&uuml;nauer, `<marcel@cpan.org>`
 
 # COPYRIGHT AND LICENSE
 
-Copyright 2008-2009 by Marcel Gr&uuml;nauer
+Copyright 2008-2010 by Marcel Gr&uuml;nauer
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

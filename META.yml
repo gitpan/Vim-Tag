@@ -16,14 +16,16 @@ meta-spec:
 name: Vim-Tag
 no_index:
   directory:
+    - examples
     - inc
     - t
     - xt
 requires:
+  Class::Accessor::Constructor: 0
   File::Find::Upwards: 0
   File::Slurp: 0
-  Getopt::Attribute: 0
-  IO::Capture::Stderr: 0
+  Getopt::Inherited: 0
+  Hash::Rename: 0
   UNIVERSAL::require: 0
   perl: 5.8.0
 resources:
@@ -31,4 +33,4 @@ resources:
   homepage: http://search.cpan.org/dist/Vim-Tag/
   license: http://dev.perl.org/licenses/
   repository: git://github.com/hanekomu/vim-tag.git
-version: 0.03
+version: 0.04

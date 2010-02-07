@@ -1,0 +1,19 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+
+my $wanted_tag = shift;
+my $ptags_file = shift || $ENV{PTAGSFILE};
+open my $fh, $ptags_file or die "can't open $ptags_file: $!\n";
+while (<$fh>) {
+    next unless index($_, $wanted_tag) == 0;
+    my $dir = (split)[1];
+    if ($dir =~ m!(.*/)!) {
+        print "$1\n";
+        last;;
+    } else {
+        die "can't determine dir from [$dir]\n";
+    }
+}
+close $fh or die "can't close $ptags_file: $!\n";
+

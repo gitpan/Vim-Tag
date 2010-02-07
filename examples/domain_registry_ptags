@@ -1,0 +1,105 @@
+#!/usr/bin/env perl
+
+# This ptags generator program is used by some programmers in the domain group
+# of the University of Vienna's central information services department (ZID)
+# when developing code for the .at zone on behalf of nic.at.
+
+use warnings;
+use strict;
+use UNIVERSAL::require;
+our $VERSION = '0.04';
+use base qw(Vim::Tag);
+
+# Some modules are a bit difficult or involved to install, so using fake
+# packages we just make Vim::Tag think that they're loaded already.
+
+sub init {
+    my $self = shift;
+    $self->SUPER::init(@_);
+    $self->setup_fake_package(
+        qw(
+          APR::Brigade
+          APR::Bucket
+          APR::Const
+          APR::Error
+          APR::SockAddr
+          APR::Socket
+          Apache::DBI
+          Apache2::Connection
+          Apache2::Const
+          Apache2::Filter
+          Apache2::ServerRec
+          GnuPG::Handles
+          GnuPG::Interface
+          SOAP::Transport::HTTP2::Apache
+          SOAP::Transport::HTTP2
+          XML::Xerces
+          XML::Xerces::DOMWriterFilter
+          XML::Xerces::PerlErrorHandler
+          XML::Xerces::PerlNodeFilterCallbackHandler
+          )
+    );
+}
+
+main->new->run;
+
+# Set up some dummy subs that are needed for our modules to even load.
+
+sub APR::Const::SO_NONBLOCK        { }
+sub Apache2::Const::OK             { }
+sub APR::Const::TIMEUP             { }
+sub APR::Const::EOF                { }
+sub APR::Const::SUCCESS            { }
+sub Apache2::Const::MODE_READBYTES { }
+
+sub finalize {
+    my $self = shift;
+    $self->SUPER::finalize(@_);
+    
+    # We could delete some tags we don't need to make completion easier, but
+    # it's even better to uses aliases.
+
+    # $self->delete_tags_by_pattern(qr/^Reg(?!i)/);
+
+    $self->make_tag_aliases(
+        qr/^Registry--NICAT--/, 'rn--',
+        qr/^Registry--NICAT--Test--EPP/, 'blackbox',
+        qr/^Registry--NICAT--Storage--DBI--Oracle--NICAT/, 'storage',
+        qr/^(.*)--Environment$/, 'env--$1',
+    );
+
+    $self->add_registry_specific_tags;
+}
+
+sub add_registry_specific_tags {
+    my $self = shift;
+
+    # Some tags are only generated when a ticket payload object or a service
+    # interface shell object are first created, so do that, but we need to
+    # make some preparations...
+
+    # ->require, don't use() during BEGIN because $::PTAGS isn't set during
+    # BEGIN, so we might lose tag definitions. Give Vim::Tag a chance to load
+    # those modules first.
+
+    Registry::NICAT::Environment->require;
+    Registry::NICAT::Ticket::Payload->require;
+    Registry::NICAT::Service::Interface::Shell->require;
+    Property::Lookup::Local->require;
+
+    # Fake some configuration to avoid uninitialized warnings when objects try to
+    # connect to the core storage.
+
+    local %Property::Lookup::Local::opt = (
+        %Property::Lookup::Local::opt,
+        core_storage_name => 'STG_NULL',
+    );
+    # First generate the ptags from the environment, then from the ticket payload.
+    # The payload object needs a delegate and hence a working environment, so we
+    # set the one we used to generate the ptags.
+
+    Class::Scaffold::Environment->setenv(Registry::NICAT::Environment->new);
+    Registry::NICAT::Ticket::Payload->new;
+    Registry::NICAT::Service::Interface::Shell->new;
+}
+
