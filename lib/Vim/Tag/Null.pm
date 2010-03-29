@@ -1,17 +1,25 @@
-package Vim::Tag::Null;
 use 5.008;
 use strict;
 use warnings;
-our $VERSION = '0.04';
+
+package Vim::Tag::Null;
+our $VERSION = '1.100880';
+# ABSTRACT: Empty base package for fake packages to aid tag generation
 our $null = bless {}, __PACKAGE__;
 sub AUTOLOAD { $null }
-
 1;
+
+
 __END__
+=pod
 
 =head1 NAME
 
 Vim::Tag::Null - Empty base package for fake packages to aid tag generation
+
+=head1 VERSION
+
+version 1.100880
 
 =head1 SYNOPSIS
 
@@ -29,32 +37,39 @@ etc.
 You will probably not need to use this package directly. It is used when
 calling C<setup_fake_package()> in L<Vim::Tag>.
 
+=head1 INSTALLATION
+
+See perlmodinstall for information and options on installing Perl modules.
+
 =head1 BUGS AND LIMITATIONS
 
 No bugs have been reported.
 
 Please report any bugs or feature requests through the web interface at
-L<http://rt.cpan.org>.
-
-=head1 INSTALLATION
-
-See perlmodinstall for information and options on installing Perl modules.
+L<http://rt.cpan.org/Public/Dist/Display.html?Name=Vim-Tag>.
 
 =head1 AVAILABILITY
 
 The latest version of this module is available from the Comprehensive Perl
-Archive Network (CPAN). Visit <http://www.perl.com/CPAN/> to find a CPAN
-site near you. Or see L<http://search.cpan.org/dist/Vim-Tag/>.
+Archive Network (CPAN). Visit L<http://www.perl.com/CPAN/> to find a CPAN
+site near you, or see
+L<http://search.cpan.org/dist/Vim-Tag/>.
 
-=head1 AUTHORS
+The development version lives at
+L<http://github.com/hanekomu/Vim-Tag/>.
+Instead of sending patches, please fork this project using the standard git
+and github infrastructure.
 
-Marcel GrE<uuml>nauer, C<< <marcel@cpan.org> >>
+=head1 AUTHOR
+
+  Marcel Gruenauer <marcel@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2008-2010 by Marcel GrE<uuml>nauer
+This software is copyright (c) 2008 by Marcel Gruenauer.
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
+

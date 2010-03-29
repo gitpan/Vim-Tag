@@ -1,9 +1,10 @@
+
 This is the Perl distribution Vim-Tag.
 
 ## Installation
 
-Vim-Tag installation is straightforward. If your CPAN shell is
-set up, you should just be able to do
+Vim-Tag installation is straightforward.
+If your CPAN shell is set up, you should just be able to do
 
     % cpan Vim::Tag
 
@@ -18,10 +19,9 @@ Then install it:
 
 ## Documentation
 
-Vim-Tag documentation is available as in POD. So you can do:
+Vim-Tag documentation is available as in POD.
+So you can do:
 
     % perldoc Vim::Tag
 
-to read the documentation online with your favorite pager.
-
-Marcel Gruenauer
+to read the documentation with your favorite pager.

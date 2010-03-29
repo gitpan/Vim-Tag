@@ -1,15 +1,17 @@
-package Vim::Tag;
 use 5.008;
 use strict;
 use warnings;
+
+package Vim::Tag;
+our $VERSION = '1.100880';
+# ABSTRACT: Generate perl tags for vim
 use File::Find;
 use File::Find::Upwards;
 use File::Slurp;
 use Hash::Rename;
 use UNIVERSAL::require;
 use Vim::Tag::Null;
-our $VERSION = '0.04';
-use base qw(Class::Accessor::Constructor Getopt::Inherited);
+use parent qw(Class::Accessor::Constructor Getopt::Inherited);
 __PACKAGE__->mk_constructor->mk_scalar_accessors(qw(tags))
   ->mk_array_accessors(qw(libs))
   ->mk_hash_accessors(qw(is_fake_package filename_for has_super_class));
@@ -399,15 +401,21 @@ sub fill_filename_placeholders {
     $self->tags(\%tags);
 }
 1;
-__END__
 
-=for test_synopsis
-1;
+
+__END__
+=pod
+
+=for test_synopsis 1;
 __END__
 
 =head1 NAME
 
 Vim::Tag - Generate perl tags for vim
+
+=head1 VERSION
+
+version 1.100880
 
 =head1 SYNOPSIS
 
@@ -466,42 +474,109 @@ directory.
 
 =head1 METHODS
 
-=over 4
-
-=item C<add_tag>
+=head2 add_tag
 
 Takes a tag name, a filename and a 'search' argument that can either be a line
 number which caused the tag, or a vim search pattern which will jump to the
 tag. It will add the tag to the C<tags> hash.
 
-=back
+=head2 add_SUPER_tags
+
+FIXME
+
+=head2 add_yaml_marshall_tags
+
+FIXME
+
+=head2 delete_tags_by_pattern
+
+FIXME
+
+=head2 determine_libs
+
+FIXME
+
+=head2 fill_filename_placeholders
+
+FIXME
+
+=head2 finalize
+
+FIXME
+
+=head2 generate_tags
+
+FIXME
+
+=head2 get_filename
+
+FIXME
+
+=head2 make_package_tag
+
+FIXME
+
+=head2 make_tag_aliases
+
+FIXME
+
+=head2 process_pm_file
+
+FIXME
+
+=head2 process_pod_file
+
+FIXME
+
+=head2 run
+
+FIXME
+
+=head2 setup_fake_package
+
+FIXME
+
+=head2 verbose_warn
+
+FIXME
+
+=head2 write_tags
+
+FIXME
+
+=head1 INSTALLATION
+
+See perlmodinstall for information and options on installing Perl modules.
 
 =head1 BUGS AND LIMITATIONS
 
 No bugs have been reported.
 
 Please report any bugs or feature requests through the web interface at
-L<http://rt.cpan.org>.
-
-=head1 INSTALLATION
-
-See perlmodinstall for information and options on installing Perl modules.
+L<http://rt.cpan.org/Public/Dist/Display.html?Name=Vim-Tag>.
 
 =head1 AVAILABILITY
 
 The latest version of this module is available from the Comprehensive Perl
-Archive Network (CPAN). Visit <http://www.perl.com/CPAN/> to find a CPAN
-site near you. Or see L<http://search.cpan.org/dist/Vim-Tag/>.
+Archive Network (CPAN). Visit L<http://www.perl.com/CPAN/> to find a CPAN
+site near you, or see
+L<http://search.cpan.org/dist/Vim-Tag/>.
 
-=head1 AUTHORS
+The development version lives at
+L<http://github.com/hanekomu/Vim-Tag/>.
+Instead of sending patches, please fork this project using the standard git
+and github infrastructure.
 
-Marcel GrE<uuml>nauer, C<< <marcel@cpan.org> >>
+=head1 AUTHOR
+
+  Marcel Gruenauer <marcel@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2008-2010 by Marcel GrE<uuml>nauer
+This software is copyright (c) 2008 by Marcel Gruenauer.
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
 
 =cut
+

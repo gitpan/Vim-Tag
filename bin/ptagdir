@@ -4,7 +4,7 @@ use strict;
 
 my $wanted_tag = shift;
 my $ptags_file = shift || $ENV{PTAGSFILE};
-open my $fh, $ptags_file or die "can't open $ptags_file: $!\n";
+open my $fh, '<', $ptags_file or die "can't open $ptags_file: $!\n";
 while (<$fh>) {
     next unless index($_, $wanted_tag) == 0;
     my $dir = (split)[1];

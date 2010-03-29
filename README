@@ -1,6 +1,9 @@
 NAME
     Vim::Tag - Generate perl tags for vim
 
+VERSION
+    version 1.100880
+
 SYNOPSIS
         $ ptags --use ~/code/coderepos -o ~/.ptags
 
@@ -55,32 +58,84 @@ DESCRIPTION
     "examples/" directory.
 
 METHODS
-    "add_tag"
-        Takes a tag name, a filename and a 'search' argument that can either
-        be a line number which caused the tag, or a vim search pattern which
-        will jump to the tag. It will add the tag to the "tags" hash.
+  add_tag
+    Takes a tag name, a filename and a 'search' argument that can either be
+    a line number which caused the tag, or a vim search pattern which will
+    jump to the tag. It will add the tag to the "tags" hash.
 
-BUGS AND LIMITATIONS
-    No bugs have been reported.
+  add_SUPER_tags
+    FIXME
 
-    Please report any bugs or feature requests through the web interface at
-    <http://rt.cpan.org>.
+  add_yaml_marshall_tags
+    FIXME
+
+  delete_tags_by_pattern
+    FIXME
+
+  determine_libs
+    FIXME
+
+  fill_filename_placeholders
+    FIXME
+
+  finalize
+    FIXME
+
+  generate_tags
+    FIXME
+
+  get_filename
+    FIXME
+
+  make_package_tag
+    FIXME
+
+  make_tag_aliases
+    FIXME
+
+  process_pm_file
+    FIXME
+
+  process_pod_file
+    FIXME
+
+  run
+    FIXME
+
+  setup_fake_package
+    FIXME
+
+  verbose_warn
+    FIXME
+
+  write_tags
+    FIXME
 
 INSTALLATION
     See perlmodinstall for information and options on installing Perl
     modules.
 
+BUGS AND LIMITATIONS
+    No bugs have been reported.
+
+    Please report any bugs or feature requests through the web interface at
+    <http://rt.cpan.org/Public/Dist/Display.html?Name=Vim-Tag>.
+
 AVAILABILITY
     The latest version of this module is available from the Comprehensive
     Perl Archive Network (CPAN). Visit <http://www.perl.com/CPAN/> to find a
-    CPAN site near you. Or see <http://search.cpan.org/dist/Vim-Tag/>.
+    CPAN site near you, or see <http://search.cpan.org/dist/Vim-Tag/>.
 
-AUTHORS
-    Marcel Grünauer, "<marcel@cpan.org>"
+    The development version lives at <http://github.com/hanekomu/Vim-Tag/>.
+    Instead of sending patches, please fork this project using the standard
+    git and github infrastructure.
+
+AUTHOR
+      Marcel Gruenauer <marcel@cpan.org>
 
 COPYRIGHT AND LICENSE
-    Copyright 2008-2010 by Marcel Grünauer
+    This software is copyright (c) 2008 by Marcel Gruenauer.
 
-    This library is free software; you can redistribute it and/or modify it
-    under the same terms as Perl itself.
+    This is free software; you can redistribute it and/or modify it under
+    the same terms as the Perl 5 programming language system itself.
 
