@@ -3,7 +3,9 @@ use strict;
 use warnings;
 
 package Vim::Tag::Null;
-our $VERSION = '1.100880';
+BEGIN {
+  $Vim::Tag::Null::VERSION = '1.110690';
+}
 # ABSTRACT: Empty base package for fake packages to aid tag generation
 our $null = bless {}, __PACKAGE__;
 sub AUTOLOAD { $null }
@@ -19,7 +21,7 @@ Vim::Tag::Null - Empty base package for fake packages to aid tag generation
 
 =head1 VERSION
 
-version 1.100880
+version 1.110690
 
 =head1 SYNOPSIS
 
@@ -52,17 +54,16 @@ L<http://rt.cpan.org/Public/Dist/Display.html?Name=Vim-Tag>.
 
 The latest version of this module is available from the Comprehensive Perl
 Archive Network (CPAN). Visit L<http://www.perl.com/CPAN/> to find a CPAN
-site near you, or see
-L<http://search.cpan.org/dist/Vim-Tag/>.
+site near you, or see L<http://search.cpan.org/dist/Vim-Tag/>.
 
-The development version lives at
-L<http://github.com/hanekomu/Vim-Tag/>.
-Instead of sending patches, please fork this project using the standard git
-and github infrastructure.
+The development version lives at L<http://github.com/hanekomu/Vim-Tag>
+and may be cloned from L<git://github.com/hanekomu/Vim-Tag.git>.
+Instead of sending patches, please fork this project using the standard
+git and github infrastructure.
 
 =head1 AUTHOR
 
-  Marcel Gruenauer <marcel@cpan.org>
+Marcel Gruenauer <marcel@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 

@@ -14,6 +14,7 @@ alias vit='vi -t'
 cdt () { cd `ptagdir $1`; }
 
 # vit and cdt (see ~/.bashrc for alias def) complete to vim's perl tags
+# UPDATE: or use Bash::Completion::Plugins::VimTag
 
 _ptags()
 {

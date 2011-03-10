@@ -2,7 +2,7 @@ NAME
     Vim::Tag - Generate perl tags for vim
 
 VERSION
-    version 1.100880
+    version 1.110690
 
 SYNOPSIS
         $ ptags --use ~/code/coderepos -o ~/.ptags
@@ -18,18 +18,12 @@ SYNOPSIS
 
     bash completion:
 
+        cpanm Bash::Completion::Plugins::VimTag
         alias vit='vi -t'
-        _ptags()
-        {
-            COMPREPLY=( $(grep -h ^${COMP_WORDS[COMP_CWORD]} ~/.ptags | cut -f 1) )
-            return 0
-        }
-        complete -F _ptags vit
 
     then you can do:
 
         $ vit Foo::Bar
-        $ vit Foo--Bar     # easier to complete on than double-colons
         $ vit my_subroutine
 
     Custom tag generation
@@ -64,52 +58,94 @@ METHODS
     jump to the tag. It will add the tag to the "tags" hash.
 
   add_SUPER_tags
-    FIXME
+    Adds tags to find a class' superclass, generated if "--use" is in
+    effect.
 
   add_yaml_marshall_tags
-    FIXME
+    Adds tags for YAML::Marshall serialization handlers.
 
   delete_tags_by_pattern
-    FIXME
+    Takes a pattern and deletes all tags that match this pattern. It's not
+    used directly in this class or in "ptags", but if you write a custom
+    tags generator you might want to munge the results.
 
   determine_libs
-    FIXME
+    Determines which directories should be searched. This includes all of
+    @INC and anything set via "--libs". We also weed out nested directories.
+    For example, @INC might contain
 
-  fill_filename_placeholders
-    FIXME
+        /.../perl-5.12.2/lib/5.12.2/darwin-2level
+        /.../perl-5.12.2/lib/5.12.2
+
+    Then we don't want the first one, but we do want the second one.
+
+    We go through library directories in @INC order. I assume that custom
+    directories will be "unshift()"-tacked onto @INC so they come first -
+    this happens with "use lib", for example. That means that the main perl
+    libraries will come last. By going through the libraries in reverse
+    order, a local version of a module will take precedence over a module
+    that's installed system-wide. This is useful if you have a module both
+    under development in your $PROJROOT as well as installed system-wide; in
+    this case you most likely want tags to point to the locally installed
+    version.
 
   finalize
-    FIXME
+    Finalizes things just before the tags are written. Here we just very
+    specifically avoid "END{}" processing when Test::Base has been loaded.
 
   generate_tags
-    FIXME
-
-  get_filename
-    FIXME
+    Goes through all files in the directories set in "determine_libs()" and
+    calls "process_pm_file()" for ".pm" files or "process_pod_file()" for
+    ".pod" files. The directories "bin", "t", "blib" and "inc" (used by
+    Module::Install) are pruned.
 
   make_package_tag
-    FIXME
+    Makes a tag for a given package.
 
   make_tag_aliases
-    FIXME
+    Takes a list of regex/replace pairs and applies each pair to each tag
+    name. If the name has been changed by the "s///" operation, a new tag is
+    recorded.
+
+    It's not used directly in this class or in "ptags", but if you write a
+    custom tags generator you might want to munge the results. For example,
+    you might want to make alias tags for long package names. Instead of
+    "My::Very::Long::Package::Namespace::*" you might like to have
+    "mvlpn::*" tags.
 
   process_pm_file
-    FIXME
+    Processes the given ".pm" file.
 
   process_pod_file
-    FIXME
+    Processes the given ".pod" file.
 
   run
-    FIXME
+    The main method that calls the other methods to do its work. This is the
+    method your tag generator - for example, "ptags" - will call.
 
   setup_fake_package
-    FIXME
+    If you use "--use" and the packages load modules which can't be loaded
+    easily in the context of Vim::Tag or which have some side-effects, you
+    can act as though that module has already been loaded.
 
-  verbose_warn
-    FIXME
+    This method takes a list of package names and changes @INC for each one.
+
+    It's not used directly in this class or in "ptags", but if you write a
+    custom tags generator you might need to use it.
 
   write_tags
-    FIXME
+    Writes the generated tags to the file determined by "--out" in a format
+    "vim" can understand.
+
+PLANS
+    *   "ptags" only has one global tags file and generates everything every
+        time it is run. This is especially a problem if you have various
+        perl installations, for example, using "perlbrew": Every time you
+        switch between perl installations you'd have to re-run "ptags" to
+        keep it up-to-date.
+
+SEE ALSO
+    Bash::Completion::Plugins::VimTag
 
 INSTALLATION
     See perlmodinstall for information and options on installing Perl
@@ -126,12 +162,13 @@ AVAILABILITY
     Perl Archive Network (CPAN). Visit <http://www.perl.com/CPAN/> to find a
     CPAN site near you, or see <http://search.cpan.org/dist/Vim-Tag/>.
 
-    The development version lives at <http://github.com/hanekomu/Vim-Tag/>.
-    Instead of sending patches, please fork this project using the standard
-    git and github infrastructure.
+    The development version lives at <http://github.com/hanekomu/Vim-Tag>
+    and may be cloned from <git://github.com/hanekomu/Vim-Tag.git>. Instead
+    of sending patches, please fork this project using the standard git and
+    github infrastructure.
 
 AUTHOR
-      Marcel Gruenauer <marcel@cpan.org>
+    Marcel Gruenauer <marcel@cpan.org>
 
 COPYRIGHT AND LICENSE
     This software is copyright (c) 2008 by Marcel Gruenauer.

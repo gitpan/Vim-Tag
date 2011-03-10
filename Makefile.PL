@@ -2,51 +2,64 @@
 use strict;
 use warnings;
 
- BEGIN { require 5.008; } 
+BEGIN { require 5.010; }
 
-use ExtUtils::MakeMaker 6.11;
+use ExtUtils::MakeMaker 6.31;
 
 
 
 my %WriteMakefileArgs = (
-                       'test' => {
-                                   'TESTS' => 't/*.t'
-                                 },
-                       'NAME' => 'Vim::Tag',
-                       'DISTNAME' => 'Vim-Tag',
-                       'CONFIGURE_REQUIRES' => {
-                                                 'ExtUtils::MakeMaker' => '6.11'
-                                               },
-                       'AUTHOR' => 'Marcel Gruenauer <marcel@cpan.org>',
-                       'BUILD_REQUIRES' => {},
-                       'ABSTRACT' => 'Generate perl tags for vim',
-                       'EXE_FILES' => [
-                                        'bin/ptagdir',
-                                        'bin/ptags'
-                                      ],
-                       'VERSION' => '1.100880',
-                       'PREREQ_PM' => {
-                                        'Scalar::Util' => '0',
-                                        'English' => '0',
-                                        'parent' => '0',
-                                        'constant' => '0',
-                                        'Hash::Rename' => '0',
-                                        'Getopt::Inherited' => '0',
-                                        'Carp' => '0',
-                                        'Test::More' => '0.88',
-                                        'Class::Accessor::Constructor' => '0',
-                                        'File::Find::Upwards' => '0',
-                                        'File::Find' => '0',
-                                        'File::Temp' => '0',
-                                        'UNIVERSAL::require' => '0',
-                                        'File::Slurp' => '0'
-                                      },
-                       'LICENSE' => 'perl'
-                     );
+  'ABSTRACT' => 'Generate perl tags for vim',
+  'AUTHOR' => 'Marcel Gruenauer <marcel@cpan.org>',
+  'BUILD_REQUIRES' => {
+    'Carp' => '0',
+    'English' => '0',
+    'File::Temp' => '0',
+    'Scalar::Util' => '0',
+    'Test::More' => '0.94'
+  },
+  'CONFIGURE_REQUIRES' => {
+    'ExtUtils::MakeMaker' => '6.31'
+  },
+  'DISTNAME' => 'Vim-Tag',
+  'EXE_FILES' => [
+    'bin/ptagdir',
+    'bin/ptags'
+  ],
+  'LICENSE' => 'perl',
+  'NAME' => 'Vim::Tag',
+  'PREREQ_PM' => {
+    'Class::Accessor::Constructor' => '0',
+    'File::Find' => '0',
+    'File::Slurp' => '0',
+    'Getopt::Inherited' => '0',
+    'Hash::Rename' => '0',
+    'UNIVERSAL::require' => '0',
+    'constant' => '0',
+    'parent' => '0'
+  },
+  'VERSION' => '1.110690',
+  'test' => {
+    'TESTS' => 't/*.t'
+  }
+);
 
 
-delete $WriteMakefileArgs{LICENSE}
-  unless eval { ExtUtils::MakeMaker->VERSION(6.31) };
+unless ( eval { ExtUtils::MakeMaker->VERSION(6.56) } ) {
+  my $br = delete $WriteMakefileArgs{BUILD_REQUIRES};
+  my $pp = $WriteMakefileArgs{PREREQ_PM};
+  for my $mod ( keys %$br ) {
+    if ( exists $pp->{$mod} ) {
+      $pp->{$mod} = $br->{$mod} if $br->{$mod} > $pp->{$mod};
+    }
+    else {
+      $pp->{$mod} = $br->{$mod};
+    }
+  }
+}
+
+delete $WriteMakefileArgs{CONFIGURE_REQUIRES}
+  unless eval { ExtUtils::MakeMaker->VERSION(6.52) };
 
 WriteMakefile(%WriteMakefileArgs);
 

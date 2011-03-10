@@ -1,5 +1,13 @@
 Revision history for Perl extension Vim-Tag
 
+1.110690  2011-03-10 18:10:16 Europe/Vienna
+    - follow symlinks
+    - added --first to only make tags the first time each package is seen
+    - better POD for bin/*
+    - less verbose
+    - removed support for PTAGS.SKIP; this also made it a lot faster
+    - added documentation
+
 1.100880  2010-03-29 23:01:12 Europe/Vienna
     - converted the distribution to Dist::Zilla-style
 

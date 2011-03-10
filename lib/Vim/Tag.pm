@@ -1,12 +1,14 @@
-use 5.008;
+use 5.010;
 use strict;
 use warnings;
 
 package Vim::Tag;
-our $VERSION = '1.100880';
+BEGIN {
+  $Vim::Tag::VERSION = '1.110690';
+}
+
 # ABSTRACT: Generate perl tags for vim
 use File::Find;
-use File::Find::Upwards;
 use File::Slurp;
 use Hash::Rename;
 use UNIVERSAL::require;
@@ -16,13 +18,16 @@ __PACKAGE__->mk_constructor->mk_scalar_accessors(qw(tags))
   ->mk_array_accessors(qw(libs))
   ->mk_hash_accessors(qw(is_fake_package filename_for has_super_class));
 use constant DEFAULTS => (tags => {});
-use constant GETOPT => (qw(use=s win out|o=s));
+use constant GETOPT => (qw(use=s out|o=s first|f libs|l=s@));
 use constant GETOPT_DEFAULTS => (verbose => 0, out => '-');
 
 # --use: whether to 'use' the package; might gen more tags. The value is the
 # path prefix under which to use() modules.
 #
-# --win: whether to use backslashes in file names
+# --first: if set, tags are only generated the first time each package is
+# seen. Seeing a package twice could happen if you have a development version
+# but have it installed as well. Use this option if you index the development
+# directory first and only want to see that version.
 sub run {
     my $self = shift;
     $self->init;
@@ -32,7 +37,6 @@ sub run {
     $self->generate_tags;
     $self->add_SUPER_tags;
     $self->add_yaml_marshall_tags;
-    $self->fill_filename_placeholders;
     $self->finalize;
     $self->write_tags;
 }
@@ -61,42 +65,40 @@ sub setup_fake_package {
 sub determine_libs {
     my $self = shift;
 
-    # Go through libs in @INC order. I assume that custom libs will be
-    # unshif()ed onto @INC so they come first - this happens with "use lib".
-    # That means that the main perl libs will come last. By going through the
-    # libs in reverse order, a local version of a module will take precedence
-    # over a module that's installed system-wide.  This is useful if you have
-    # a module both under development in your $PROJROOT as well as installed
-    # system-wide; in this case you most likely want tags to point to the
-    # locally installed version.
     our @libs = grep { !/^\.+$/ } grep { ref ne 'CODE' } @INC;
     {
         no warnings 'once';
         unshift @libs => @Devel::SearchINC::PATHS;
     }
-    $self->libs(@libs);
+    if (defined $self->opt('libs')) {
+        unshift @libs => @{ $self->opt('libs') };
+    }
+
+    my @keep_inc;
+    for my $candidate (sort { length($a) <=> length($b) } @libs) {
+        next if grep { index($candidate, $_) == 0 } @keep_inc;
+        push @keep_inc => $candidate;
+    }
+    $self->libs(@keep_inc);
 }
 
 sub generate_tags {
     my $self = shift;
     $::PTAGS = $self;
     for ($self->libs) {
-        warn "Indexing $_\n";
         find(
-            sub {
-                if (-d && (/^(bin|t|blib|inc)$/
-                        || file_find_upwards('PTAGS.SKIP'))
-                  ) {
-                    $self->verbose_warn(
-                        "Skipping directory [$File::Find::name]\n");
-                    return $File::Find::prune = 1;
-                }
-                return unless -f;
-                if (/\.pm$/) {
-                    $self->process_pm_file;
-                } elsif (/\.pod$/) {
-                    $self->process_pod_file;
-                }
+            {   follow => 1,
+                wanted => sub {
+                    if (-d && /^(bin|t|blib|inc)$/) {
+                        return $File::Find::prune = 1;
+                    }
+                    return unless -f;
+                    if (/\.pm$/o) {
+                        $self->process_pm_file;
+                    } elsif (/\.pod$/o) {
+                        $self->process_pod_file;
+                    }
+                  }
             },
             $_
         );
@@ -104,36 +106,13 @@ sub generate_tags {
 }
 
 sub write_tags {
-    my $self = shift;
-    my @libs = $self->libs;    # No method calls in sort sub
-
-    # If you have a module both under development in your $PROJROOT as well as
-    # installed system-wide, you most likely want tags to point to the
-    # locally installed version. So here we sort according to lib, that
-    # is, @INC, order, which is most likely the order you
-    # want the modules to be found.
-    my $lib_order = sub {
-        my $path  = shift;
-        my $order = 0;
-        for my $candidate (@libs) {
-            $order++;
-            return $order if index($path, $candidate) == 0;
-        }
-        $order;
-    };
+    my $self    = shift;
     my %tags    = %{ $self->tags };
     my $outfile = $self->opt('out');
     ## no critic (ProhibitTwoArgOpen)
     open my $fh, ">$outfile" or die "can't open $outfile for writing: $!\n";
     for my $tag (sort keys %tags) {
-        for my $file (
-            sort { $lib_order->($a) <=> $lib_order->($b) }
-            keys %{ $tags{$tag} }
-          ) {
-            for my $search (sort keys %{ $tags{$tag}{$file} }) {
-                print $fh "$tag\t$file\t$search\n";
-            }
-        }
+        printf $fh "%s\t%s\t%s\n", $tag, @$_ for @{ $tags{$tag} };
     }
     close $fh or die "can't close $outfile: $!\n";
 }
@@ -162,58 +141,37 @@ sub make_tag_aliases {
     $self->tags(\%tags);
 }
 
-sub verbose_warn {
-    my ($self, $message, $level) = @_;
-    $level ||= 1;
-    return unless $self->opt('verbose') >= $level;
-    warn $message;
-}
-
 sub add_tag {
     my ($self, $tag, $file, $search) = @_;
 
     # If you derived at the filename via caller(), you might get something
     # like /loader/0x1234567 if the file was loaded via Devel::SearchINC. But
     # it will also have set the correct filename in %INC, so we can find it
-    # there.
-    if (defined($file) && $file =~ m!^/loader/0x[0-9a-f]+/(.*)!) {
+    # there. The index() is just an optimization.
+    if (   defined($file)
+        && index($file, '/loader/0x') == 0
+        && $file =~ m!^/loader/0x[0-9a-f]+/(.*)!o) {
         $file = $INC{$1};
     }
-    if ($file =~ qr/\(eval \d+\)/) {
-        $self->verbose_warn("eval tag denied");
-        return;
-    }
-    do {
-        $self->verbose_warn("add_tag [$tag] file [$file] search [$search]\n",
-            2);
-        $self->tags->{$tag}{$file}{$search}++;
-    } while $tag =~ y/:/-/;
+    push @{ $self->tags->{$tag} } => [ $file, $search ];
 }
 
 sub make_package_tag {
     my ($self, %args) = @_;
-    my $package = $args{tag};
     $self->filename_for($args{tag}, $args{filename})
       unless $self->exists_filename_for($args{tag});
-    $self->verbose_warn(">>> package [$package]\n");
     $self->add_tag($args{tag}, $args{filename}, "?^$args{search}\\>");
-}
-
-sub get_filename {
-    my $self     = shift;
-    my $filename = $File::Find::name;
-    $filename =~ y!/!\\! if $self->opt('win');
-    $self->verbose_warn(">>> processing file [$filename]\n");
-    $filename;
 }
 
 sub process_pm_file {
     my $self     = shift;
     my $text     = read_file($_);
-    my $filename = $self->get_filename;
+    my $filename = $File::Find::name;
     my $package;
     while ($text =~ /^(package +(\w+(::\w+)*))\s*;/gmo) {
         my ($search, $tag) = ($1, $2);
+        our %package_seen;
+        return if $package_seen{$tag}++ && $self->opt('first');
         $self->make_package_tag(
             filename => $filename,
             search   => $search,
@@ -221,36 +179,12 @@ sub process_pm_file {
         );
         $package ||= $tag;    # only remember the first package
     }
-
-    # only include companion class tags if we could determine the package name
-    if ($package) {
-
-        # support vimrc definitions to switch between Foo.pm and Foo_TEST.pm.
-        #
-        # companionclass--Foo.pm      -> Foo_TEST.pm
-        # companionclass--Foo_TEST.pm -> Foo.pm
-        my $other_filename;
-        if ($filename =~ /_TEST\.pm$/) {
-            ($other_filename = $filename) =~ s/_TEST\.pm$/.pm/;
-        } else {
-            ($other_filename = $filename) =~ s/\.pm$/_TEST.pm/;
-        }
-        $self->add_tag("companionclass--$package", $other_filename, 1);
-    }
-    while ($text =~ /^(sub +(\w+(::\w+)*))\s*[:{\(#]/gmo) {
-        my $tag = $2;
-        $self->verbose_warn(">>> sub [$tag]\n");
-        $self->add_tag($tag, $filename, "?^$1\\>");
-    }
-    while ($text =~ /^(use +constant\s+(\w+(::\w+)*))\s*=>/gmo) {
-        my $tag = $2;
-        $self->verbose_warn(">>> constant [$tag]\n");
-        $self->add_tag($tag, $filename, "?^$1\\>");
+    while ($text =~ /^((?:sub|use\s+constant)\s+(\w+(?:::\w+)*))/gmo) {
+        $self->add_tag($2, $filename, "?^$1\\>");
     }
 
     # custom ptags: simple strings
     while ($text =~ /#\s*(ptags:\s*(\w+(::\w+)*))\s*$/gmo) {
-        $self->verbose_warn(">>> custom ptag [$2]\n");
         my $tag = do {
             ## no critic (ProhibitNoStrict)
             no strict;
@@ -266,7 +200,6 @@ sub process_pm_file {
     # meta-characters ('[]$' etc).
     while ($text =~ /#\s*ptags-code:\s*([\w:]+)\s*(.*)/gmo) {
         my ($search, $code) = ($1, $2);   # assign in case the code uses regexes
-        $self->verbose_warn(">>> ptags-code [$code]\n");
         my @tags = do {
             ## no critic (ProhibitNoStrict)
             no strict;
@@ -274,16 +207,12 @@ sub process_pm_file {
             eval $code;
         };
         die $@ if $@;
-        for my $tag (@tags) {
-            do { $self->add_tag($tag, $filename, "?^$search\\>") }
-              while $tag =~ y/:/-/;
-        }
+        $self->add_tag($_, $filename, "?^$search\\>") for @tags;
     }
 
     # custom ptags: per-file regexes
     my @re;
     while ($text =~ m!#\s*ptags:\s*/(.*)/\s*$!gm) {
-        $self->verbose_warn(">>> ptags-regex [$1]\n");
         push @re => qr/$1/;
     }
     for my $re (@re) {
@@ -292,15 +221,12 @@ sub process_pm_file {
         # because they're iterating over the same string, funny things happen
         # when the regexes interfere with each other.
         while ($text =~ /$re/gm) {
-            my $tag = $2;
-            do { $self->add_tag($tag, $filename, "?^$1\\>") }
-              while $tag =~ y/:/-/;
+            $self->add_tag($2, $filename, "?^$1\\>");
         }
     }
     if ($self->opt('use') && index($File::Find::name, $self->opt('use')) == 0) {
 
         # give modules a chance to output their custom ptags using $::PTAGS
-        $self->verbose_warn(">>> use [$package]\n");
         {
 
             # localise global variables so that no matter what the module does
@@ -333,7 +259,6 @@ sub process_pm_file {
         }
 
         # Also determine inheritance and make tags
-        $self->verbose_warn(">>> inheritance for [$package]\n");
         no strict 'refs';
         $self->add_tag("subclass--$_", $filename, "?^use base\\>")
           for @{"${package}::ISA"};
@@ -347,9 +272,11 @@ sub process_pm_file {
 sub process_pod_file {
     my $self     = shift;
     my $text     = read_file($_);
-    my $filename = $self->get_filename;
+    my $filename = $File::Find::name;
     while ($text =~ /^(=for\s+ptags\s+package +(\w+(::\w+)*))\s*;/gmo) {
         my ($search, $tag) = ($1, $2);
+        our %package_seen;
+        return if $package_seen{$tag}++ && $self->opt('first');
         $self->make_package_tag(
             filename => $filename,
             search   => $search,
@@ -390,16 +317,6 @@ sub add_yaml_marshall_tags {
         $self->add_tag($tag, $file, 1);
     }
 }
-
-sub fill_filename_placeholders {
-    my $self = shift;
-    my %tags = %{ $self->tags };
-    while (my ($tag, $spec) = each %tags) {
-        hash_rename %$spec,
-          code => sub { s/^(filename_for:(.*))/ $self->filename_for($2) /e };
-    }
-    $self->tags(\%tags);
-}
 1;
 
 
@@ -415,7 +332,7 @@ Vim::Tag - Generate perl tags for vim
 
 =head1 VERSION
 
-version 1.100880
+version 1.110690
 
 =head1 SYNOPSIS
 
@@ -432,18 +349,12 @@ then this works in vim:
 
 bash completion:
 
+    cpanm Bash::Completion::Plugins::VimTag
     alias vit='vi -t'
-    _ptags()
-    {
-        COMPREPLY=( $(grep -h ^${COMP_WORDS[COMP_CWORD]} ~/.ptags | cut -f 1) )
-        return 0
-    }
-    complete -F _ptags vit
 
 then you can do:
 
     $ vit Foo::Bar
-    $ vit Foo--Bar     # easier to complete on than double-colons
     $ vit my_subroutine
 
 Custom tag generation
@@ -482,67 +393,111 @@ tag. It will add the tag to the C<tags> hash.
 
 =head2 add_SUPER_tags
 
-FIXME
+Adds tags to find a class' superclass, generated if C<--use> is in effect.
 
 =head2 add_yaml_marshall_tags
 
-FIXME
+Adds tags for L<YAML::Marshall> serialization handlers.
 
 =head2 delete_tags_by_pattern
 
-FIXME
+Takes a pattern and deletes all tags that match this pattern. It's not used
+directly in this class or in C<ptags>, but if you write a custom tags
+generator you might want to munge the results.
 
 =head2 determine_libs
 
-FIXME
+Determines which directories should be searched. This includes all of C<@INC>
+and anything set via C<--libs>. We also weed out nested directories. For
+example, C<@INC> might contain
 
-=head2 fill_filename_placeholders
+    /.../perl-5.12.2/lib/5.12.2/darwin-2level
+    /.../perl-5.12.2/lib/5.12.2
 
-FIXME
+Then we don't want the first one, but we do want the second one.
+
+We go through library directories in C<@INC> order. I assume that
+custom directories will be C<unshift()>-tacked onto L<@INC> so they
+come first - this happens with C<use lib>, for example. That means
+that the main perl libraries will come last. By going through the
+libraries in reverse order, a local version of a module will take
+precedence over a module that's installed system-wide. This is useful
+if you have a module both under development in your C<$PROJROOT> as
+well as installed system-wide; in this case you most likely want tags
+to point to the locally installed version.
 
 =head2 finalize
 
-FIXME
+Finalizes things just before the tags are written. Here we just very
+specifically avoid C<END{}> processing when L<Test::Base> has been
+loaded.
 
 =head2 generate_tags
 
-FIXME
-
-=head2 get_filename
-
-FIXME
+Goes through all files in the directories set in C<determine_libs()>
+and calls C<process_pm_file()> for C<.pm> files or
+C<process_pod_file()> for C<.pod> files. The directories C<bin>, C<t>,
+C<blib> and C<inc> (used by L<Module::Install>) are pruned.
 
 =head2 make_package_tag
 
-FIXME
+Makes a tag for a given package.
 
 =head2 make_tag_aliases
 
-FIXME
+Takes a list of regex/replace pairs and applies each pair to each tag
+name. If the name has been changed by the C<s///> operation, a new tag
+is recorded.
+
+It's not used directly in this class or in C<ptags>, but if you write
+a custom tags generator you might want to munge the results. For
+example, you might want to make alias tags for long package names.
+Instead of C<My::Very::Long::Package::Namespace::*> you might like to
+have C<mvlpn::*> tags.
 
 =head2 process_pm_file
 
-FIXME
+Processes the given C<.pm> file.
 
 =head2 process_pod_file
 
-FIXME
+Processes the given C<.pod> file.
 
 =head2 run
 
-FIXME
+The main method that calls the other methods to do its work. This is
+the method your tag generator - for example, C<ptags> - will call.
 
 =head2 setup_fake_package
 
-FIXME
+If you use C<--use> and the packages load modules which can't be loaded easily
+in the context of L<Vim::Tag> or which have some side-effects, you can act as
+though that module has already been loaded.
 
-=head2 verbose_warn
+This method takes a list of package names and changes C<@INC> for each one.
 
-FIXME
+It's not used directly in this class or in C<ptags>, but if you write a custom
+tags generator you might need to use it.
 
 =head2 write_tags
 
-FIXME
+Writes the generated tags to the file determined by C<--out> in a
+format C<vim> can understand.
+
+=head1 PLANS
+
+=over 4
+
+=item * C<ptags> only has one global tags file and generates everything every
+time it is run. This is especially a problem if you have various perl
+installations, for example, using C<perlbrew>: Every time you switch between
+perl installations you'd have to re-run C<ptags> to keep it up-to-date.
+
+=back
+
+=head1 SEE ALSO
+
+L<Bash::Completion::Plugins::VimTag>
 
 =head1 INSTALLATION
 
@@ -559,17 +514,16 @@ L<http://rt.cpan.org/Public/Dist/Display.html?Name=Vim-Tag>.
 
 The latest version of this module is available from the Comprehensive Perl
 Archive Network (CPAN). Visit L<http://www.perl.com/CPAN/> to find a CPAN
-site near you, or see
-L<http://search.cpan.org/dist/Vim-Tag/>.
+site near you, or see L<http://search.cpan.org/dist/Vim-Tag/>.
 
-The development version lives at
-L<http://github.com/hanekomu/Vim-Tag/>.
-Instead of sending patches, please fork this project using the standard git
-and github infrastructure.
+The development version lives at L<http://github.com/hanekomu/Vim-Tag>
+and may be cloned from L<git://github.com/hanekomu/Vim-Tag.git>.
+Instead of sending patches, please fork this project using the standard
+git and github infrastructure.
 
 =head1 AUTHOR
 
-  Marcel Gruenauer <marcel@cpan.org>
+Marcel Gruenauer <marcel@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
